@@ -26,17 +26,19 @@ activity$date <- as.Date(activity$date)
 First we'll aggregate the data by day and find the total steps for each day.  From those daily totals, we can plot a histogram of the total number of steps taken each day and calculate the mean and median.
 
 ```{r}
-dailyTotals <- aggregate(activity$steps, by = list(activity$date), sum, na.rm = TRUE)
+#aggregate ignores na values by default
+dailyTotals <- aggregate(activity$steps, by = list(activity$date), FUN = sum)
+meanSteps <- mean(dailyTotals$x, na.rm = TRUE)
+medianSteps <- median(dailyTotals$x, na.rm = TRUE)
 hist(dailyTotals$x, breaks = 20, xlab = "Steps", main = "Histogram of Total Steps per Day")
-meanSteps <- mean(dailyTotals$x)
-medianSteps <- median(dailyTotals$x)
+abline(v = meanSteps, col = "blue", lwd = 2)
 ```
 
-The mean number of steps per day is **`r round(meanSteps, 2)`** and the median is **`r medianSteps`**.
+The mean number of steps per day is **`r format(round(meanSteps, 2), scientific = FALSE)`** (shown in blue on the histogram) and the median is **`r medianSteps`**.
 
 ## What is the average daily activity pattern?
 
-In order to see the the averag daily activity, we'll take the mean for each interval across all the days (again, ignoring missing values) and plot the average steps by interval.
+In order to see the the average daily activity, we'll take the mean for each interval across all the days (again, ignoring missing values) and plot the average steps by interval.
 
 ```{r}
 intervalMeans <- aggregate(activity$steps, by = list(activity$interval), mean, na.rm = TRUE)
@@ -54,7 +56,7 @@ A number of the intervals have missing data for the number of steps.
 totalMissing <- sum(is.na(activity$steps))
 ```
 
-For the **`r totalMissing`** with no step count, we will impute the missing value by taking a random sample from all the other days for that interval for which there is data.  For example, for interval 600, there are `r sum(is.na(activity[activity$interval == 600,1]))` cases for which there are missing values.  For each of those, we will randomly choose the step count of one of the other `sum(!is.na(activity[activity$interval == 600,1]))` cases for interval 600 which do have data.
+For the **`r totalMissing`** with no step count, we will impute the missing value by taking a random sample from all the other days for that interval for which there is data.  For example, for interval 600, there are `r sum(is.na(activity[activity$interval == 600,1]))` cases for which there are missing values.  For each of those, we will randomly choose the step count of one of the other `r sum(!is.na(activity[activity$interval == 600,1]))` cases for interval 600 which do have data.
 
 ```{r}
 completeData <- activity[complete.cases(activity),]
@@ -72,13 +74,14 @@ for (i in seq_along(incompleteRows)) {
 Now we'll do the same histogram and mean and median calculations as before to see what difference there may be between ignoring and imputing missing data.
 
 ```{r}
-newDailyTotals <- aggregate(imputedActivity$steps, by = list(imputedActivity$date), sum)
+newDailyTotals <- aggregate(imputedActivity$steps, by = list(imputedActivity$date), FUN = sum)
 hist(newDailyTotals$x, breaks = 20, xlab = "Steps", main = "Histogram of Total Steps per Day")
 newMeanSteps <- mean(newDailyTotals$x)
 newMedianSteps <- median(newDailyTotals$x)
+abline(v = newMeanSteps, col = "blue", lwd = 2)
 ```
 
-The mean is now **`r format(newMeanSteps, scientific=FALSE)`**, and the median is **`r newMedianSteps`**.  These are both comparitively larger than the previous mean and median (`r paste(round(meanSteps, 2), medianSteps, sep=", ")`).  As can be seen from the histogram, there are also far fewer days with 1000 steps or less.
+The mean is now **`r format(newMeanSteps, scientific=FALSE)`** (shown in blue), and the median is **`r newMedianSteps`**.  These are reasonably similar to the previous mean and median (`r paste(round(meanSteps, 2), medianSteps, sep=", ")`).  The histogram is also very similarly shaped.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
@@ -93,3 +96,5 @@ qplot(interval, steps, data = imputedActivity,
       stat = "summary", fun.y = "mean", 
       geom = "line", facets = dayType ~ .)
 ```
+
+Casual observation of the plot suggests that weekend activity begins somewhat later in the morning and doesn't peak so high, but shows somewhat more activity during the day and extending further into the evening than on the weekdays.
